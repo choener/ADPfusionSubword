@@ -204,3 +204,16 @@ instance IndexConversion (Z:.Subword I) (Z:.Subword I) where
   {-# Inline convertIndex #-}
   convertIndex = Just
 --}}}
+
+instance IndexConversion (Z:.Subword I) (Subword I) where
+--{{{
+  {-# Inline convertIndex #-}
+  convertIndex (Z:.sw) = Just sw
+--}}}
+
+instance IndexConversion (Subword I) (Subword I) where
+--{{{
+  {-# Inline convertIndex #-}
+  convertIndex = Just
+--}}}
+

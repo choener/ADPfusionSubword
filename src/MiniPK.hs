@@ -32,14 +32,15 @@ import           Text.Printf
 
 import           Data.PrimitiveArray as PA
 
-import           ADPfusion.Subword
 import           ADPfusion.Core
+import           ADPfusion.Subword
 
 
 
 data Tup m x r c = Tup
-  { pkk :: (Z:.c) -> x
-  , nll :: (Z:.()) -> x
+--  { pkk :: (Z:.c) -> x -> x
+  { nll :: (()) -> x
+--  , sng :: (Z:.()) -> x
   , h   :: SM.Stream m x -> m r
   }
 
@@ -48,44 +49,47 @@ makeAlgebraProduct ''Tup
 
 bpmax :: Monad m => Tup m Int Int Char
 bpmax = Tup
-  { pkk = \ (Z:.c) -> 123456
-  , nll = \ (Z:.()) -> 987654
+--  { pkk = \ (Z:.c) x -> x + 123456
+  { nll = \ (()) -> 987654
+--  , sng = \ (Z:.()) -> 0
   , h   = SM.foldl' max (-999999)
   }
 {-# INLINE bpmax #-}
 
 -- |
 
-grammar Tup{..} u' c =
-  let u = TW u' ( pkk <<< (M:|c)       |||
-                  nll <<< (M:|Epsilon @Global) ... h
+grammar Tup{..} s' t' c =
+  let s = TW s' ( -- pkk <<< (M:|c) % s       |||
+                  nll <<< (Epsilon @Global) ... h
                 )
-  in Z:.u
+      t = TW t' ( nll <<< (Epsilon @Global) ... h )
+  in Z:.s:.t
 {-# INLINE grammar #-}
 
 
+type A1 = TwITbl 0 0 Id (Dense VU.Vector) (EmptyOk) (Subword I) Int
 type T = TwITbl 0 0 Id (Dense VU.Vector) (Z:.EmptyOk) (Z:.Subword I) Int
 
-runInsideForward :: VU.Vector Char -> Mutated (Z:.T)
+runInsideForward :: VU.Vector Char -> Mutated (Z:.A1:.A1)
 runInsideForward i = runST $ do
   let n = VU.length i
-  arr <- newWithPA (ZZ:..LtSubword n) (-888888)
-  let guideIndex = Z:.BOI @0 (upperBound arr)
-  fillTablesDim guideIndex $ grammar bpmax
-    (ITbl @_ @_ @_ @_ @_ @_ (Z:.EmptyOk) arr)
+  arr0 <- newWithPA (LtSubword n) (-777777)
+  --arr1 <- newWithPA (ZZ:..LtSubword n) (-888888)
+  let guideIndex = Z:.BOI @0 (upperBound arr0)
+  fillTables {- Dim guideIndex -} $ grammar bpmax
+    (ITbl @_ @_ @_ @_ @_ @_ (EmptyOk) arr0)
+    (ITbl @_ @_ @_ @_ @_ @_ (EmptyOk) arr0)
     (chr i)
   where n = VU.length i
 {-# NoInline runInsideForward #-}
 
 main :: IO ()
 main = do
-  return ()
---  as <- getArgs
---  let k = if null as then 1 else read $ head as
---  ls <- lines <$> getContents
---  forM_ ls $ \l -> do
---    putStrLn l
---    let (s,xs) = runPseudoknot k l
---    print s
---    mapM_ (\[x] -> printf "%s %5d\n" x s) xs
+  as <- getArgs
+  let k = if null as then 1 else read $ head as
+  ls <- lines <$> getContents
+  forM_ ls $ \l -> do
+    print $ length l
+    let Mutated zt perf _ = runInsideForward $ VU.fromList l
+    print $ showPerfCounter perf
 

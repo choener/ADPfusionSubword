@@ -32,8 +32,8 @@ instance
   , TermStreamContext m ps ts s x0 i0 is (Subword I))
   => TermStream m (ps:.IStatic 0) (TermSymbol ts (TwITbl bo so m arr c (Subword I) x)) s (is:.Subword I) where
 --{{{
-  {-# Inline termStream #-}
-  termStream Proxy (ts:| TW (ITbl _ arr) f) (us:..u) (is:.Subword (i:.j))
+  {-# Inline [1] termStream #-}
+  termStream Proxy (ts:| TW (ITbl _ arr) f) (us:..LtSubword u) (is:.Subword (i:.j))
     = SP.map (\(TState s ii ee) ->
         let RiSwI l = getIndex (getIdx s) (Proxy :: PRI is (Subword I))
             lj = subword l j
@@ -55,9 +55,9 @@ instance
         let RiSwI l = getIndex (getIdx s) (Proxy :: PRI is (Subword I))
         in  return (tstate, l, j-l)
       {-# Inline [0] step #-}
-      step (tstate@(TState s ii ee), k, z)
+      step (TState s ii ee, k, z)
         | z >= 0 = do let l  = j-z; kl = subword k l
-                      return $ SP.Yield (TState s (ii:.:RiSwI l) (ee:.arr!kl)) (tstate, k, z-1)
+                      return $ SP.Yield (TState s (ii:.:RiSwI l) (ee:.arr!kl)) (TState s ii ee, k, z-1)
         | otherwise = return SP.Done
 --}}}
 
