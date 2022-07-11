@@ -38,9 +38,9 @@ import           ADPfusion.Subword
 
 
 data Tup m x r c = Tup
---  { pkk :: (Z:.c) -> x -> x
-  { nll :: (()) -> x
---  , sng :: (Z:.()) -> x
+  { pkk :: (Z:.c) -> x -> x
+  , nll :: (Z:.()) -> x
+  , sng :: () -> x
   , h   :: SM.Stream m x -> m r
   }
 
@@ -49,9 +49,9 @@ makeAlgebraProduct ''Tup
 
 bpmax :: Monad m => Tup m Int Int Char
 bpmax = Tup
---  { pkk = \ (Z:.c) x -> x + 123456
-  { nll = \ (()) -> 987654
---  , sng = \ (Z:.()) -> 0
+  { pkk = \ (Z:.c) x -> x + 123456
+  , nll = \ (Z:.()) -> 987654
+  , sng = \ () -> 0
   , h   = SM.foldl' max (-999999)
   }
 {-# INLINE bpmax #-}
@@ -59,10 +59,10 @@ bpmax = Tup
 -- |
 
 grammar Tup{..} s' t' c =
-  let s = TW s' ( -- pkk <<< (M:|c) % s       |||
-                  nll <<< (Epsilon @Global) ... h
+  let s = TW s' ( pkk <<< (M:|c) % s       |||
+                  nll <<< (M:|Epsilon @Global) ... h
                 )
-      t = TW t' ( nll <<< (Epsilon @Global) ... h )
+      t = TW t' ( sng <<< (Epsilon @Global) ... h )
   in Z:.s:.t
 {-# INLINE grammar #-}
 
@@ -70,14 +70,14 @@ grammar Tup{..} s' t' c =
 type A1 = TwITbl 0 0 Id (Dense VU.Vector) (EmptyOk) (Subword I) Int
 type T = TwITbl 0 0 Id (Dense VU.Vector) (Z:.EmptyOk) (Z:.Subword I) Int
 
-runInsideForward :: VU.Vector Char -> Mutated (Z:.A1:.A1)
+runInsideForward :: VU.Vector Char -> Mutated (Z:.T:.A1)
 runInsideForward i = runST $ do
   let n = VU.length i
   arr0 <- newWithPA (LtSubword n) (-777777)
-  --arr1 <- newWithPA (ZZ:..LtSubword n) (-888888)
-  let guideIndex = Z:.BOI @0 (upperBound arr0)
-  fillTables {- Dim guideIndex -} $ grammar bpmax
-    (ITbl @_ @_ @_ @_ @_ @_ (EmptyOk) arr0)
+  arr1 <- newWithPA (ZZ:..LtSubword n) (-888888)
+  let guideIndex = Z:.BOI @0 (upperBound arr1)
+  fillTablesDim guideIndex $ grammar bpmax
+    (ITbl @_ @_ @_ @_ @_ @_ (Z:.EmptyOk) arr1)
     (ITbl @_ @_ @_ @_ @_ @_ (EmptyOk) arr0)
     (chr i)
   where n = VU.length i
