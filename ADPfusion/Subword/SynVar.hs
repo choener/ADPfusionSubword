@@ -26,6 +26,9 @@ instance TermStaticVar (IVariable d) (TwITbl bo so m arr c (Subword I) x) (Subwo
   termStaticCheck Proxy _ _ _ grd = grd
 ----}}}
 
+instance TermStaticVar (IStatic 0) (TwITblBt bo so arr c (Subword I) x mF mB r) (Subword I) where
+
+instance TermStaticVar (IVariable 0) (TwITblBt bo so arr c (Subword I) x mF mB r) (Subword I) where
 
 instance
   ( Monad m, PrimArrayOps arr (Subword I) x, TermStream m ps ts s is
@@ -61,3 +64,12 @@ instance
         | otherwise = return SP.Done
 --}}}
 
+instance
+  (
+  )
+  => TermStream m (ps:.IStatic 0) (TermSymbol ts (TwITblBt bo so arr c (Subword I) x mF mB r)) s (is:.Subword I) where
+
+instance
+  (
+  )
+  => TermStream m (ps:.IVariable 0) (TermSymbol ts (TwITblBt bo so arr c (Subword I) x mF mB r)) s (is:.Subword I) where

@@ -74,6 +74,7 @@ instance
 --}}}
 
 instance
+--{{{
   ( us ~ SplitIxTy uId (SameSid uId (Elm ls (Subword I))) (Elm ls (Subword I))
   , split ~ Split uId Final (TwITbl b s m (Dense v) (cs:.c) (us:.Subword I) x)
   , left ~ LeftPosTy (IStatic 0) split (Subword I)
@@ -82,6 +83,7 @@ instance
   , PrimArrayOps (Dense v) (us:.Subword I) x
   , Element ls (Subword I)
   )
+--}}}
   => MkStream m (IVariable 0) (ls :!: Split uId Final (TwITbl b s m (Dense v) (cs:.c) (us:.Subword I) x)) (Subword I) where
   --{{{
   {-# Inline mkStream #-}
@@ -121,5 +123,41 @@ instance TermStaticVar (IVariable d) (Split uId fragTy (TwITbl bo so m arr c i x
   termStreamIndex Proxy _ (Subword (i:.j)) = Subword (i:.j)
   {-# Inline [0] termStaticCheck #-}
   termStaticCheck Proxy _ _ _ grd = grd
+--}}}
+
+
+
+-- * Backtracing
+
+type instance LeftPosTy (IStatic   d) (Split uId Fragment (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) = TypeError (Text "IStatic / Fragment should be impossible, since 'Final' should always induce a variable left side")
+type instance LeftPosTy (IStatic   d) (Split uId Final    (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) = IVariable d
+type instance LeftPosTy (IVariable d) (Split uId Final    (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) = IVariable d
+type instance LeftPosTy (IVariable d) (Split uId Fragment (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) = IVariable d
+
+instance
+  ( Monad m
+  ) => MkStream m (IVariable 0) (ls :!: Split uId Fragment (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) where
+
+instance
+  ( Monad m
+  ) => MkStream m (IVariable 0) (ls :!: Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) where
+
+instance
+  ( split ~ Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.Subword I) x mF mB r)
+  , Monad m, MkStream m left ls (Subword I), TermStaticVar (IStatic 0) split (Subword I)
+  , SplitIxCol uId (SameSid uId (Elm ls (Subword I))) (Elm ls (Subword I))
+  , Element ls (Subword I)
+  ) => MkStream m (IStatic 0) (ls :!: Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) where
+--{{{
+  {-# Inline mkStream #-}
+  mkStream proxy (ls :!: split@(Split (TW (BtITbl c arr) bt))) grd us i@(Subword (_:.j))
+    = SP.map (\elm ->
+      let RiSwI l = getIdx elm
+          ix      = collectIx (Proxy @uId) elm :. Subword (l:.j)
+          val     = undefined -- arr PA.! ix
+      in  undefined) -- ElmSplitITbl (Proxy @uId) val (RiSwI j) elm i)
+    $ mkStream (Proxy :: Proxy left) ls
+        (termStaticCheck proxy split us i grd)
+        us i
 --}}}
 
