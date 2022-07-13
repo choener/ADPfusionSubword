@@ -143,21 +143,45 @@ instance
   ) => MkStream m (IVariable 0) (ls :!: Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) where
 
 instance
-  ( split ~ Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.Subword I) x mF mB r)
+  ( us ~ SplitIxTy uId (SameSid uId (Elm ls (Subword I))) (Elm ls (Subword I))
+  , split ~ Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.Subword I) x mF mB r)
+  , left ~ LeftPosTy (IStatic 0) split (Subword I)
   , Monad m, MkStream m left ls (Subword I), TermStaticVar (IStatic 0) split (Subword I)
   , SplitIxCol uId (SameSid uId (Elm ls (Subword I))) (Elm ls (Subword I))
   , Element ls (Subword I)
-  ) => MkStream m (IStatic 0) (ls :!: Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.u) x mF mB r)) (Subword I) where
+  ) => MkStream m (IStatic 0) (ls :!: Split uId Final (TwITblBt b s (Dense v) (cs:.c) (us:.Subword I) x mF mB r)) (Subword I) where
 --{{{
   {-# Inline mkStream #-}
   mkStream proxy (ls :!: split@(Split (TW (BtITbl c arr) bt))) grd us i@(Subword (_:.j))
     = SP.map (\elm ->
       let RiSwI l = getIdx elm
           ix      = collectIx (Proxy @uId) elm :. Subword (l:.j)
-          val     = undefined -- arr PA.! ix
-      in  undefined) -- ElmSplitITbl (Proxy @uId) val (RiSwI j) elm i)
+          val     = error "bt LimitType ix, but we still need to calculate the correct LimitType!"
+      in  ElmSplitBtITbl (Proxy @uId) val (RiSwI j) elm i)
     $ mkStream (Proxy :: Proxy left) ls
         (termStaticCheck proxy split us i grd)
         us i
+--}}}
+
+instance TermStaticVar (IStatic d) (Split uId fragTy (TwITblBt bo so arr c i x mF mB r)) (Subword I) where
+--{{{
+  -- | Calculate how much the index changes.
+  --
+  -- TODO replace '0' by an appropriate (EmptyOk vs not) amount
+  {-# Inline [0] termStreamIndex #-}
+  termStreamIndex Proxy _ (Subword (i:.j)) = Subword (i:.j)
+  {-# Inline [0] termStaticCheck #-}
+  termStaticCheck Proxy _ _ _ grd = grd
+--}}}
+
+instance TermStaticVar (IVariable d) (Split uId fragTy (TwITblBt bo so arr c i x mF mB r)) (Subword I) where
+--{{{
+  -- | Calculate how much the index changes.
+  --
+  -- TODO replace '0' by an appropriate (EmptyOk vs not) amount
+  {-# Inline [0] termStreamIndex #-}
+  termStreamIndex Proxy _ (Subword (i:.j)) = Subword (i:.j)
+  {-# Inline [0] termStaticCheck #-}
+  termStaticCheck Proxy _ _ _ grd = grd
 --}}}
 
